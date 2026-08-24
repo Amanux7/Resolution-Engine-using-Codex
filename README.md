@@ -4,8 +4,8 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-25%20passing-2E7D32)](#quality-and-testing)
-[![Stage](https://img.shields.io/badge/project-Stage%203-8B5CF6)](#implementation-status)
+[![Tests](https://img.shields.io/badge/tests-41%20passing-2E7D32)](#quality-and-testing)
+[![Stage](https://img.shields.io/badge/project-Stage%204-8B5CF6)](#implementation-status)
 
 Resolution Engine is an independent case-resolution prototype for ordinary consumers. A user describes what went wrong and adds the evidence they already have—screenshots, documents, photographs, PDFs, or text. The product organizes that material into facts, provenance, missing information, conflicts, an evidence-backed timeline, and a reviewable next-action recommendation.
 
@@ -55,9 +55,10 @@ A user can:
 | Stage 1 | Product shell, design system, case model, responsive and accessible core flow | Complete |
 | Stage 2 | Persistence, evidence processing, provenance, fact validation, conflicts, missing information, timeline | Complete |
 | Stage 3 | Read-only Resolution Agent, synthetic policy guidance, deterministic ranking, recommendation validation and review | Complete |
-| Stage 4 | Communication preparation and follow-up workflow | Not started |
+| Stage 4 | Evidence-grounded communication preparation and Resolution Pack review | Complete |
+| Stage 5 | Real multimodal provider integration behind existing guardrails | Not started |
 
-Detailed verification notes are available in the [Stage 1 audit](docs/stage-1-audit.md), [Stage 2 audit](docs/stage-2-audit.md), and [Stage 3 audit](docs/stage-3-audit.md).
+Detailed verification notes are available in the [Stage 1 audit](docs/stage-1-audit.md), [Stage 2 audit](docs/stage-2-audit.md), [Stage 3 audit](docs/stage-3-audit.md), and [Stage 4 audit](docs/stage-4-audit.md).
 
 ## Technology stack
 
@@ -105,14 +106,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-No database, storage service, or model API key is required. `AI_MODE=mock` provides deterministic local recommendations.
+No database, storage service, or model API key is required. `AI_MODE=mock` provides deterministic local processing and recommendations.
 
 ## Environment configuration
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `AI_MODE` | `mock` | Selects deterministic local recommendation behavior. |
-| `OPENAI_API_KEY` | unset | Reserved for a future server-side OpenAI adapter; the current application does not use it. |
+| `AI_MODE` | `mock` | Selects deterministic local processing and recommendation behavior. |
+| `OPENAI_API_KEY` | unset | Optional server-only API key for live image evidence extraction. |
+| `OPENAI_MODEL` | `gpt-4.1-mini` | Optional multimodal extraction model override. |
 | `NEXT_DIST_DIR` | `.next` | Optional alternate Next.js build directory, useful in synchronized folders such as OneDrive. |
 
 Secrets must remain server-side. Environment files are ignored by Git except for `.env.example`.
@@ -289,7 +291,7 @@ npm test
 npm run build
 ```
 
-The current suite contains 25 passing tests across Stage 1, Stage 2, and Stage 3. Coverage includes case validation, repositories, uploads, evidence processing, provenance, conflicts, timelines, recommendation ranking and guardrails, history, review controls, APIs, and five fictional evaluation scenarios.
+The current suite contains 41 passing tests across Stages 1–4. Coverage includes case validation, repositories, uploads, evidence processing, provenance, conflicts, timelines, recommendation ranking and guardrails, communication claims, user-edit handling, Resolution Pack history, controlled review states, APIs, and five fictional evaluation scenarios.
 
 The interface has also been checked at 360, 390, 412, 768, and 1280 pixels with no horizontal overflow in the primary recommendation flow.
 
@@ -327,14 +329,15 @@ Demo policy records use `sourceType: "synthetic_demo_policy"` and must never be 
 ## Known limitations
 
 - Local JSON persistence is intended for development, not concurrent multi-user production workloads.
-- Image OCR and full PDF extraction remain provider seams and fail transparently when unavailable.
-- `AI_MODE=openai` is reserved but not connected.
+- `AI_MODE=openai` enables server-side OpenAI Responses API processing for PNG, JPG/JPEG, and WEBP evidence. Output stays candidate-only until schema, fact, provenance, and conflict validation succeed.
+- `AI_MODE=mock` remains the default and never makes a network call. It keeps deterministic TXT extraction; image evidence is transparently marked as needing a configured processor.
+- Full PDF extraction remains a provider seam and fails transparently when unavailable.
 - The synthetic policy dataset is deliberately narrow and non-authoritative.
 - Authentication, production personal-data handling, rate limiting, malware scanning, and cloud deployment configuration remain future work.
 
 ## Roadmap
 
-The recommended next stage is a read-only `CommunicationAgent` that consumes an approved recommendation and its validated citations. It should prepare—but never automatically send—a factual draft, expose recipient/channel/body for review, validate every case claim against provenance, and require separate approval before any future delivery integration.
+The recommended next stage is India-first language, low-bandwidth, accessibility, and final citizen-journey polish. The provider, provenance, validation, conflict, safety, and human-approval boundaries are already in place.
 
 Later work may include authoritative policy-source adapters, production persistence and storage, OCR/PDF providers, authentication, follow-up tasks, and carefully controlled external integrations.
 
@@ -356,4 +359,3 @@ Resolution Engine is an independent fictional prototype. It is not affiliated wi
 ## License
 
 No open-source license has been declared yet. All rights remain with the repository owner until a license is added.
-

@@ -1,4 +1,5 @@
-import type { Case, Fact, Evidence, TimelineEvent, Communication, Provenance } from "./case";
+import type { Case, Fact, Evidence, TimelineEvent, Provenance } from "./case";
+import type { ActionPackage, CommunicationContext, CommunicationDraft, CommunicationTone } from "./action-package";
 import type { ResolutionContext, ResolutionRecommendation } from "./resolution";
 export interface AgentError { code:string; message:string; retryable:boolean; }
 export interface ToolCallRecord { toolName:string; input:unknown; output?:unknown; status:"requested"|"completed"|"failed"; }
@@ -11,8 +12,8 @@ export interface TimelineAgentInput { caseId:string; facts:Fact[]; evidence:Evid
 export interface TimelineAgentOutput { events:TimelineEvent[]; }
 export interface ResolutionAgentInput { context:ResolutionContext; }
 export interface ResolutionAgentOutput { recommendations:ResolutionRecommendation[]; }
-export interface CommunicationAgentInput { case:Case; recommendation:ResolutionRecommendation; }
-export interface CommunicationAgentOutput { communication:Communication; }
+export interface CommunicationAgentInput { context:CommunicationContext; tone:CommunicationTone; }
+export interface CommunicationAgentOutput { communication:CommunicationDraft; actionPackage?:ActionPackage; }
 export interface EscalationAgentInput { case:Case; }
 export interface EscalationAgentOutput { options:Array<{title:string;description:string;requirements:string[]}>; }
 export interface FollowUpAgentInput { case:Case; }

@@ -1,0 +1,3 @@
+import type { ReactNode } from "react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+export function Alert({tone="info",children}:{tone?:"info"|"error"|"success";children:ReactNode}){const Icon=tone==="error"?AlertCircle:tone==="success"?CheckCircle2:Info;return <div role={tone==="error"?"alert":"status"} className={`flex gap-3 rounded-xl border p-4 text-sm ${tone==="error"?"border-danger-50 bg-danger-50 text-danger-600":tone==="success"?"border-brand-100 bg-brand-50 text-brand-700":"border-line bg-canvas text-muted"}`}><Icon size={18} className="mt-0.5 shrink-0" aria-hidden="true"/><div>{children}</div></div>;}

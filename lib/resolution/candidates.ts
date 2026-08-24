@@ -1,0 +1,63 @@
+import type { Evidence, Fact } from "../../types/case";
+import type { PolicyReference, ResolutionActionCandidate, ResolutionContext, ResolutionReason } from "../../types/resolution";
+
+type ScoreInput={evidenceSupport:number;urgency:number;userEffort:number;reversibility:number;uncertainty:number;risk:number};
+
+function evidenceForFacts(facts:Fact[],evidence:Evidence[],reason:string){
+  const seen=new Set<string>();
+  return facts.flatMap(fact=>fact.sourceId&&evidence.some(item=>item.id===fact.sourceId)&&!seen.has(fact.sourceId)?(seen.add(fact.sourceId),[{evidenceId:fact.sourceId,reason,sourceText:fact.sourceText}]):[]);
+}
+
+/** Higher userEffort means lower effort. Total = support*4 + urgency*3 + low effort*2 + reversibility*2 - uncertainty*3 - risk*3. */
+export function scoreAction(input:ScoreInput){return {...input,total:input.evidenceSupport*4+input.urgency*3+input.userEffort*2+input.reversibility*2-input.uncertainty*3-input.risk*3};}
+function confidence(context:ResolutionContext,support:number):"high"|"medium"|"low"{if(context.conflicts.length>0)return "low";const uncertainty=context.missingInformation.length;if(uncertainty>=3)return "low";if(support>=3&&uncertainty<=1)return "high";return "medium";}
+function hasText(context:ResolutionContext,pattern:RegExp){return pattern.test(`${context.case.description}\n${context.facts.map(fact=>`${fact.value} ${fact.sourceText??""}`).join("\n")}\n${context.timeline.map(event=>`${event.title} ${event.description}`).join("\n")}`);}
+function policyReason(policy:PolicyReference|undefined):ResolutionReason[]{return policy?[{statement:policy.summary,sourceType:"policy",sourceId:policy.id,confidence:"medium"}]:[];}
+
+export function createActionCandidates(context:ResolutionContext,policies:PolicyReference[]):ResolutionActionCandidate[]{
+  const candidates:ResolutionActionCandidate[]=[];
+  const refundPending=hasText(context,/refund.*(?:pending|not received|not confirmed|delay)|(?:pending|not received|not confirmed|delay).*refund/i);
+  const pickupSupported=hasText(context,/pickup.*(?:completed|confirmed)|return.*(?:completed|picked up)/i);
+  const wrongProduct=hasText(context,/wrong product|different product|different item/i);
+  const missingDelivery=hasText(context,/missing delivery|not delivered|did not arrive/i);
+  const refundFacts=context.facts.filter(fact=>fact.factType==="refund_date"||/refund/i.test(`${fact.value} ${fact.sourceText??""}`));
+  const pickupFacts=context.facts.filter(fact=>/pickup|return/i.test(`${fact.value} ${fact.sourceText??""}`));
+  const uncertainty=context.missingInformation.length+context.conflicts.length;
+
+  if(context.conflicts.length>0){
+    const reasons:ResolutionReason[]=context.conflicts.map(conflict=>({statement:conflict.reason,sourceType:"system",sourceId:conflict.id,confidence:"high"}));
+    const scores=scoreAction({evidenceSupport:4,urgency:4,userEffort:4,reversibility:5,uncertainty,risk:1});
+    candidates.push({id:"confirm-conflicting-information",title:"Confirm the conflicting details first",action:"Ask the seller to confirm the conflicting date or amount in writing before relying on it for a further step.",explanation:"Your evidence contains information that does not match. Confirming it first keeps the case record accurate and avoids silently choosing one version.",reasons,supportingEvidence:[],unresolvedQuestions:["Which date or amount is correct?"],risks:["Relying on one conflicting record could weaken a later request."],confidence:"low",priority:"important",scores});
+  }
+
+  if(refundPending||pickupSupported||context.missingInformation.some(item=>item.expectedFactType==="refund_date")){
+    const sources=[...pickupFacts,...refundFacts];
+    const refundMissing=context.missingInformation.filter(item=>item.expectedFactType==="refund_date");
+    const reasons:ResolutionReason[]=[
+      ...pickupFacts.slice(0,1).map(fact=>({statement:"Your case includes evidence that the return pickup was completed.",sourceType:"fact" as const,sourceId:fact.id,confidence:"high" as const})),
+      ...refundMissing.slice(0,1).map(item=>({statement:"The case does not yet verify that the refund was initiated or completed.",sourceType:"system" as const,sourceId:item.id,confidence:"high" as const})),
+      ...policyReason(policies.find(policy=>policy.id.includes("refund-status"))),
+    ];
+    if(reasons.length===0)reasons.push({statement:"The case description reports that the refund is unresolved; this is not proof that it was never initiated.",sourceType:"system",sourceId:"case-description",confidence:"medium"});
+    const support=pickupSupported?4:3;
+    candidates.push({id:"ask-for-refund-confirmation",title:"Ask for written refund confirmation",action:"Ask the seller to confirm the refund status in writing.",explanation:"The record supports that the return process was discussed or completed, but it does not confirm that the refund was initiated or completed. A written status request is low-risk and reversible.",reasons,supportingEvidence:evidenceForFacts(sources,context.evidence,"Supports the return or refund status"),unresolvedQuestions:refundMissing.map(item=>item.label),risks:["This does not establish that a refund has or has not been processed."],confidence:confidence(context,support),priority:"important",scores:scoreAction({evidenceSupport:support,urgency:refundPending?4:3,userEffort:5,reversibility:5,uncertainty,risk:1})});
+    candidates.push({id:"collect-refund-evidence",title:"Collect refund evidence",action:"Add any refund confirmation, transaction reference, or latest seller message to the case.",explanation:"More direct evidence would reduce uncertainty about whether refund processing began.",reasons:refundMissing.map(item=>({statement:item.reason,sourceType:"system" as const,sourceId:item.id,confidence:"high" as const})),supportingEvidence:evidenceForFacts(refundFacts,context.evidence,"Contains refund-related wording"),unresolvedQuestions:refundMissing.map(item=>item.label),risks:[],confidence:"medium",priority:"normal",scores:scoreAction({evidenceSupport:2,urgency:2,userEffort:3,reversibility:5,uncertainty,risk:0})});
+    candidates.push({id:"prepare-later-escalation",title:"Prepare a later escalation",action:"Keep the case record ready for escalation if written clarification does not resolve the refund status.",explanation:"Escalation may be worth reviewing later, but the safer immediate step is to obtain a clear written status first.",reasons:policyReason(policies.find(policy=>policy.id.includes("refund-status"))),supportingEvidence:evidenceForFacts(sources,context.evidence,"May support a later escalation review"),unresolvedQuestions:refundMissing.map(item=>item.label),risks:["Escalating before confirming the refund status may be premature."],confidence:"low",priority:"normal",scores:scoreAction({evidenceSupport:2,urgency:2,userEffort:2,reversibility:3,uncertainty,risk:3})});
+    const expectedRefund=context.facts.find(fact=>fact.factType==="refund_date"&&fact.normalizedValue);
+    if(expectedRefund&&Date.parse(expectedRefund.normalizedValue!)>Date.now())candidates.push({id:"wait-active-refund-window",title:"Wait for the supported refund date",action:`Wait until ${expectedRefund.value}, then check whether the refund status changed.`,explanation:"The evidence includes a refund date that has not yet passed.",reasons:[{statement:expectedRefund.sourceText??expectedRefund.text,sourceType:"fact",sourceId:expectedRefund.id,confidence:"high"}],supportingEvidence:evidenceForFacts([expectedRefund],context.evidence,"Shows the stated refund date"),unresolvedQuestions:[],risks:["Waiting is appropriate only while the supported date remains in the future."],confidence:"high",priority:"normal",scores:scoreAction({evidenceSupport:4,urgency:1,userEffort:5,reversibility:5,uncertainty,risk:1})});
+  }
+
+  if(wrongProduct){
+    const productFacts=context.facts.filter(fact=>fact.factType==="product"||/wrong product|different item/i.test(`${fact.value} ${fact.sourceText??""}`));
+    candidates.push({id:"request-wrong-product-process",title:"Preserve evidence and ask for the seller's process",action:"Keep the item and order evidence together, then ask the seller to confirm the replacement or return process in writing.",explanation:"Your case indicates that the delivered item may not match the order. Preserving the comparison and keeping the request written makes the next step reviewable.",reasons:[...productFacts.slice(0,1).map(fact=>({statement:"Your evidence identifies a possible mismatch between the order and delivered item.",sourceType:"fact" as const,sourceId:fact.id,confidence:"medium" as const})),...policyReason(policies.find(policy=>policy.id.includes("wrong-product")))],supportingEvidence:evidenceForFacts(productFacts,context.evidence,"Shows the order or delivered item"),unresolvedQuestions:[],risks:["Confirm the ordered and delivered item details before agreeing to a return."],confidence:confidence(context,3),priority:"important",scores:scoreAction({evidenceSupport:3,urgency:3,userEffort:4,reversibility:5,uncertainty,risk:1})});
+  }
+
+  if(missingDelivery){
+    const deliveryFacts=context.facts.filter(fact=>fact.factType==="delivery_date"||/delivery|tracking|arrive|order/i.test(`${fact.value} ${fact.sourceText??""}`));
+    const missingLabels=context.missingInformation.filter(item=>item.expectedFactType==="delivery_date").map(item=>item.label);
+    candidates.push({id:"ask-for-delivery-status",title:"Verify the delivery status",action:"Ask the seller or marketplace to confirm the delivery status and share any tracking update in writing.",explanation:"The case does not establish that the order reached you. A written delivery update is the lowest-risk way to clarify what happened before considering escalation.",reasons:[...deliveryFacts.slice(0,1).map(fact=>({statement:"Your case contains order or delivery information that still needs confirmation.",sourceType:"fact" as const,sourceId:fact.id,confidence:"medium" as const})),...policyReason(policies.find(policy=>policy.id.includes("delivery-not")))],supportingEvidence:evidenceForFacts(deliveryFacts,context.evidence,"Contains order, delivery, or tracking details"),unresolvedQuestions:[...missingLabels,"Was the package delivered, and if so, when?"],risks:["The current record does not establish theft, loss, or fraud."],confidence:confidence(context,3),priority:"important",scores:scoreAction({evidenceSupport:3,urgency:4,userEffort:5,reversibility:5,uncertainty,risk:1})});
+  }
+
+  if(candidates.length===0)candidates.push({id:"collect-clarifying-information",title:"Add one useful detail",action:"Add the order details or the latest written conversation before deciding on the next step.",explanation:"The current record does not yet support a specific, reliable action.",reasons:[{statement:"The case needs more evidence-backed detail before a specific recommendation is reliable.",sourceType:"system",sourceId:"case-completeness",confidence:"high"}],supportingEvidence:[],unresolvedQuestions:["What did the seller last say?","Do you have the order or delivery details?"],risks:[],confidence:"low",priority:"normal",scores:scoreAction({evidenceSupport:1,urgency:1,userEffort:4,reversibility:5,uncertainty:Math.max(uncertainty,2),risk:1})});
+  return candidates.sort((left,right)=>right.scores.total-left.scores.total||left.id.localeCompare(right.id));
+}

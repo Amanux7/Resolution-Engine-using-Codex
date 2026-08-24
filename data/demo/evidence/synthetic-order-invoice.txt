@@ -1,0 +1,6 @@
+SYNTHETIC DEMO DOCUMENT — NOT A REAL INVOICE
+ExampleMart order RX-1024
+Product: Example Phone 12
+Amount: ₹18,499
+Order placed Aug 03.
+Delivered Aug 07.

@@ -1,0 +1,4 @@
+SYNTHETIC DEMO CONVERSATION — NOT A REAL SUPPORT CHAT
+ExampleMart support: We have received your damage report on Aug 07.
+ExampleMart support: Return pickup was completed Aug 12.
+ExampleMart support: Your refund was promised after pickup, but the refund is still pending.

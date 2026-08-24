@@ -1,0 +1,7 @@
+export const MAX_FILE_SIZES:{prefix:string;extensions:string[];max:number;label:string}[]=[
+  {prefix:"image/",extensions:[".png",".jpg",".jpeg",".webp"],max:10*1024*1024,label:"Images"},
+  {prefix:"application/pdf",extensions:[".pdf"],max:15*1024*1024,label:"PDFs"},
+  {prefix:"text/plain",extensions:[".txt"],max:2*1024*1024,label:"text files"}
+];
+export interface ValidatedUpload { filename:string; mimeType:string; size:number; extension:string; data:Uint8Array; }
+export function validateUpload(input:{filename?:string;mimeType?:string;size?:number;data?:Uint8Array}):ValidatedUpload{const filename=(input.filename??"").trim();const mimeType=(input.mimeType??"").toLowerCase();const size=input.size??0;const extension=filename.includes(".")?filename.slice(filename.lastIndexOf(".")).toLowerCase():"";if(!filename||!mimeType||!input.data)throw new Error("We couldn't read that upload. Please choose the file again.");if(size<=0)throw new Error("That file is empty. Please choose a file with content.");const rule=MAX_FILE_SIZES.find(candidate=>mimeType.startsWith(candidate.prefix)&&candidate.extensions.includes(extension));if(!rule)throw new Error("That file type isn't supported yet. Add a PNG, JPG, WEBP, PDF, or TXT file.");if(size>rule.max)throw new Error(`${rule.label} must be smaller than ${Math.round(rule.max/1024/1024)} MB.`);return {filename,mimeType,size,extension,data:input.data};}

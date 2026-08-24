@@ -71,4 +71,3 @@ PATCH  /api/cases/:id/recommendation
 The current stage stops at a reviewable recommendation. Approval or rejection changes only internal recommendation status. It never sends a message, submits a complaint, contacts a seller, or changes an external system. Communication preparation, escalation execution, authentication, and production data handling remain future work.
 
 See [`docs/stage-1-audit.md`](docs/stage-1-audit.md), [`docs/stage-2-audit.md`](docs/stage-2-audit.md), and [`docs/stage-3-audit.md`](docs/stage-3-audit.md) for verification notes and known limitations.
-

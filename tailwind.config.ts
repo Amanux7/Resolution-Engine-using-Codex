@@ -1,0 +1,2 @@
+import type { Config } from "tailwindcss";
+export default { content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"], theme: { extend: { colors: { ink: "#17212b", muted: "#66727d", paper: "#fbfaf7", canvas: "#f4f2ed", line: "#e3e1db", brand: {50:"#eef8f5",100:"#d9f0e9",500:"#2f887c",600:"#226f66",700:"#1c5b54"}, amber:{50:"#fff7e6",600:"#a76409"}, danger:{50:"#fff0ed",600:"#b84d3d"} }, boxShadow: { soft: "0 12px 35px rgba(35,45,50,.07)" } } }, plugins: [require("@tailwindcss/forms")] } satisfies Config;

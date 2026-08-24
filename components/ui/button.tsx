@@ -1,0 +1,3 @@
+import type { ButtonHTMLAttributes } from "react";
+import { clsx } from "clsx";
+export function Button({className,variant="primary",...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:"primary"|"secondary"|"ghost"}){return <button className={clsx("inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",variant==="primary"&&"bg-brand-600 text-white hover:bg-brand-700",variant==="secondary"&&"border border-line bg-white text-ink hover:bg-canvas",variant==="ghost"&&"text-muted hover:bg-canvas hover:text-ink",className)} {...props}/>;}

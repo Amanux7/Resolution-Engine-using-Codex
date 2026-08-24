@@ -4,8 +4,8 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-41%20passing-2E7D32)](#quality-and-testing)
-[![Stage](https://img.shields.io/badge/project-Stage%204-8B5CF6)](#implementation-status)
+[![Tests](https://img.shields.io/badge/tests-54%20passing-2E7D32)](#quality-and-testing)
+[![Stage](https://img.shields.io/badge/project-Stage%207-8B5CF6)](#implementation-status)
 
 Resolution Engine is an independent case-resolution prototype for ordinary consumers. A user describes what went wrong and adds the evidence they already have—screenshots, documents, photographs, PDFs, or text. The product organizes that material into facts, provenance, missing information, conflicts, an evidence-backed timeline, and a reviewable next-action recommendation.
 
@@ -56,9 +56,11 @@ A user can:
 | Stage 2 | Persistence, evidence processing, provenance, fact validation, conflicts, missing information, timeline | Complete |
 | Stage 3 | Read-only Resolution Agent, synthetic policy guidance, deterministic ranking, recommendation validation and review | Complete |
 | Stage 4 | Evidence-grounded communication preparation and Resolution Pack review | Complete |
-| Stage 5 | Real multimodal provider integration behind existing guardrails | Not started |
+| Stage 5 | Server-side OpenAI multimodal extraction behind existing guardrails | Complete |
+| Stage 6 | India-first, mobile-first citizen journey and deterministic sample case | Complete |
+| Stage 7 | Reliability, adversarial evaluation, demo readiness, and deployment audit | Complete with live provider capacity noted below |
 
-Detailed verification notes are available in the [Stage 1 audit](docs/stage-1-audit.md), [Stage 2 audit](docs/stage-2-audit.md), [Stage 3 audit](docs/stage-3-audit.md), and [Stage 4 audit](docs/stage-4-audit.md).
+Detailed verification notes are available in the [Stage 1 audit](docs/stage-1-audit.md), [Stage 2 audit](docs/stage-2-audit.md), [Stage 3 audit](docs/stage-3-audit.md), [Stage 4 audit](docs/stage-4-audit.md), [Stage 5 audit](docs/stage-5-audit.md), [Stage 6 audit](docs/stage-6-audit.md), and [Stage 7 audit](docs/stage-7-audit.md).
 
 ## Technology stack
 
@@ -107,6 +109,8 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 No database, storage service, or model API key is required. `AI_MODE=mock` provides deterministic local processing and recommendations.
+
+For the fastest product walkthrough, select **Try a sample case** from the home screen. It creates a clearly labelled fictional damaged-phone case and never requires a model call.
 
 ## Environment configuration
 
@@ -291,7 +295,17 @@ npm test
 npm run build
 ```
 
-The current suite contains 41 passing tests across Stages 1–4. Coverage includes case validation, repositories, uploads, evidence processing, provenance, conflicts, timelines, recommendation ranking and guardrails, communication claims, user-edit handling, Resolution Pack history, controlled review states, APIs, and five fictional evaluation scenarios.
+The current non-paid suite contains 54 passing tests plus one intentionally skipped opt-in OpenAI integration test. Coverage includes case validation, repositories, uploads, evidence processing, provenance, conflicts, timelines, recommendation ranking and guardrails, communication claims, user-edit handling, Resolution Pack history, controlled review states, APIs, strict-schema nullable-field normalization, prompt-injection safety, provider-failure messaging, and idempotent evidence processing.
+
+Live OpenAI verification remains opt-in and never runs as part of `npm test`:
+
+```powershell
+$env:AI_MODE = "openai"
+$env:RUN_OPENAI_INTEGRATION_TESTS = "true"
+npm test -- tests/openai-image.integration.test.ts
+```
+
+Use only synthetic fixtures. The [evaluation report](docs/evaluation-report.md) records the latest controlled results and any provider-capacity limitation honestly.
 
 The interface has also been checked at 360, 390, 412, 768, and 1280 pixels with no horizontal overflow in the primary recommendation flow.
 
@@ -335,9 +349,15 @@ Demo policy records use `sourceType: "synthetic_demo_policy"` and must never be 
 - The synthetic policy dataset is deliberately narrow and non-authoritative.
 - Authentication, production personal-data handling, rate limiting, malware scanning, and cloud deployment configuration remain future work.
 
+## Demo and deployment
+
+The [demo script](docs/demo-script.md) is the recommended two-minute walkthrough. It uses the deterministic sample case as the baseline and treats live image extraction as an optional, pre-checked moment.
+
+For local development, JSON persistence and local filesystem evidence storage are intentionally zero-configuration. They are not durable for serverless or multi-instance deployment. Before deploying a persistent public demo, wire the existing repository and storage interfaces to hosted Postgres/Supabase and object storage. See the [Stage 7 audit](docs/stage-7-audit.md).
+
 ## Roadmap
 
-The recommended next stage is India-first language, low-bandwidth, accessibility, and final citizen-journey polish. The provider, provenance, validation, conflict, safety, and human-approval boundaries are already in place.
+The recommended next stage is deployment configuration, renewed live-provider verification once capacity is available, final adversarial rehearsal, a two-minute submission video, and hackathon submission material. The provider, provenance, validation, conflict, safety, and human-approval boundaries are already in place.
 
 Later work may include authoritative policy-source adapters, production persistence and storage, OCR/PDF providers, authentication, follow-up tasks, and carefully controlled external integrations.
 

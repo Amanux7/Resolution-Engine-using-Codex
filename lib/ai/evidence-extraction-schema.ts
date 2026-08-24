@@ -18,11 +18,52 @@ export type EvidenceExtractionResult = z.infer<typeof evidenceExtractionSchema>;
 export const evidenceExtractionJsonSchema={
   type:"object",additionalProperties:false,required:["evidenceType","summary","facts","detectedDates","detectedAmounts","uncertainty","warnings"],properties:{
     evidenceType:{type:"string",enum:["invoice","order_confirmation","delivery_confirmation","support_conversation","refund_confirmation","product_photo","unknown"]},summary:{type:"string"},
-    facts:{type:"array",items:{type:"object",additionalProperties:false,required:["factType","value","confidence"],properties:{factType:{type:"string",enum:factTypes},value:{type:"string"},normalizedValue:{type:"string"},confidence:{type:"string",enum:confidence},sourceText:{type:"string"},sourceRegion:{type:"object",additionalProperties:false,properties:{description:{type:"string"}}}}}},
-    detectedDates:{type:"array",items:{type:"object",additionalProperties:false,required:["label","value"],properties:{label:{type:"string"},value:{type:"string"},sourceText:{type:"string"}}}},
-    detectedAmounts:{type:"array",items:{type:"object",additionalProperties:false,required:["label","value"],properties:{label:{type:"string"},value:{type:"string"},currency:{type:"string"},sourceText:{type:"string"}}}},
+    facts:{
+      type:"array",
+      items:{
+        type:"object",additionalProperties:false,
+        required:["factType","value","normalizedValue","confidence","sourceText","sourceRegion"],
+        properties:{
+          factType:{type:"string",enum:factTypes},value:{type:"string"},
+          normalizedValue:{anyOf:[{type:"string"},{type:"null"}]},confidence:{type:"string",enum:confidence},
+          sourceText:{anyOf:[{type:"string"},{type:"null"}]},
+          sourceRegion:{anyOf:[{type:"object",additionalProperties:false,required:["description"],properties:{description:{anyOf:[{type:"string"},{type:"null"}]}}},{type:"null"}]}
+        }
+      }
+    },
+    detectedDates:{
+      type:"array",
+      items:{type:"object",additionalProperties:false,required:["label","value","sourceText"],properties:{label:{type:"string"},value:{type:"string"},sourceText:{anyOf:[{type:"string"},{type:"null"}]}}}
+    },
+    detectedAmounts:{
+      type:"array",
+      items:{type:"object",additionalProperties:false,required:["label","value","currency","sourceText"],properties:{label:{type:"string"},value:{type:"string"},currency:{anyOf:[{type:"string"},{type:"null"}]},sourceText:{anyOf:[{type:"string"},{type:"null"}]}}}
+    },
     uncertainty:{type:"array",items:{type:"string"}},warnings:{type:"array",items:{type:"string"}}
   }
 } as const;
 
-export function parseEvidenceExtraction(value:unknown):EvidenceExtractionResult { return evidenceExtractionSchema.parse(value); }
+/** The Responses API requires strict schemas to model optional fields as nullable.
+ * Convert only those explicit null placeholders back to optional application fields
+ * before the existing Zod boundary validates the result. */
+export function parseEvidenceExtraction(value:unknown):EvidenceExtractionResult {
+  if(!value||typeof value!=="object")return evidenceExtractionSchema.parse(value);
+  const input=value as Record<string,unknown>;
+  const optional=(item:unknown,keys:string[])=>{
+    if(!item||typeof item!=="object")return item;
+    const record={...(item as Record<string,unknown>)};
+    for(const key of keys)if(record[key]===null)record[key]=undefined;
+    if(record.sourceRegion&&typeof record.sourceRegion==="object"){
+      const region={...(record.sourceRegion as Record<string,unknown>)};
+      if(region.description===null)region.description=undefined;
+      record.sourceRegion=region;
+    }else if(record.sourceRegion===null)record.sourceRegion=undefined;
+    return record;
+  };
+  return evidenceExtractionSchema.parse({
+    ...input,
+    facts:Array.isArray(input.facts)?input.facts.map(item=>optional(item,["normalizedValue","sourceText","sourceRegion"])):input.facts,
+    detectedDates:Array.isArray(input.detectedDates)?input.detectedDates.map(item=>optional(item,["sourceText"])):input.detectedDates,
+    detectedAmounts:Array.isArray(input.detectedAmounts)?input.detectedAmounts.map(item=>optional(item,["currency","sourceText"])):input.detectedAmounts
+  });
+}

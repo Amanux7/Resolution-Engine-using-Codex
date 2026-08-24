@@ -11,11 +11,12 @@ import { findMissingInformation } from "../facts/missing";
 import { buildTimeline } from "../timeline/builder";
 
 export interface ProcessResult { evidence:Evidence; caseData:Case; facts:Fact[]; }
+const inFlightEvidenceProcessing=new Map<string,Promise<ProcessResult>>();
 function sourceType(evidence:Evidence){return evidence.sourceType==="synthetic"?"synthetic_demo":"uploaded_file" as const;}
 function toFact(candidate:ExtractedFactCandidate,evidence:Evidence):Fact{const sourceText=candidate.sourceText?.trim();return {id:`fact-${randomUUID()}`,caseId:evidence.caseId,factType:candidate.factType,value:candidate.value,normalizedValue:candidate.normalizedValue,text:sourceText??candidate.value,sourceText,sourceType:sourceType(evidence),sourceId:evidence.id,confidence:candidate.confidence,createdBy:candidate.extractionMethod==="llm"?"agent":"system",extractionMethod:candidate.extractionMethod,createdAt:new Date().toISOString()};}
 
 /** Provider responses are candidates: this is the only path that validates and persists evidence facts. */
-export async function processEvidence(evidenceId:string,userId:string):Promise<ProcessResult>{
+async function processEvidenceInternal(evidenceId:string,userId:string):Promise<ProcessResult>{
   const repositories=getRepositories();const storage=getStorageProvider();const evidence=await repositories.evidence.getById(evidenceId);
   if(!evidence)throw new Error("We couldn't find that evidence.");
   const caseData=await repositories.getAggregate(evidence.caseId,userId);
@@ -52,4 +53,14 @@ export async function processEvidence(evidenceId:string,userId:string):Promise<P
     const updated=await repositories.evidence.updateProcessingStatus(evidence.id,"failed",{errorMessage:message,extractedFactsCount:0});
     throw Object.assign(new Error(message),{evidence:updated});
   }
+}
+
+/** Shares a running operation per evidence ID so rapid taps or retries do not
+ * create duplicate provider calls or uncontrolled duplicate fact writes. */
+export function processEvidence(evidenceId:string,userId:string):Promise<ProcessResult>{
+  const running=inFlightEvidenceProcessing.get(evidenceId);
+  if(running)return running;
+  const operation=processEvidenceInternal(evidenceId,userId).finally(()=>inFlightEvidenceProcessing.delete(evidenceId));
+  inFlightEvidenceProcessing.set(evidenceId,operation);
+  return operation;
 }

@@ -99,9 +99,9 @@ Choose **Try a sample case** on the home screen for the reliable reviewer journe
 
 The [demo script](docs/demo-script.md) and [recording checklist](docs/recording-checklist.md) prepare a two-minute walkthrough.
 
-## Deployment status
+## Hosted deployment
 
-The local fallback uses JSON persistence and filesystem storage for zero-configuration development. It is not durable for serverless or multi-instance hosting. Before a public persistent deployment, connect the existing repository and storage abstractions to hosted Postgres/Supabase and private object storage. The exact status and checklist are in [Stage 8 documentation](docs/stage-8-audit.md) and [the public-demo checklist](docs/public-demo-checklist.md).
+The provider-neutral persistence and storage seams support both local development and Vercel + Supabase hosting. Hosted mode uses Supabase PostgREST for the existing case repositories and a private Supabase Storage bucket with short-lived server-generated evidence URLs. Follow the exact [deployment guide](docs/deployment.md); it includes the migration, required server-only variables, and verification path.
 
 ## Limitations and disclosure
 

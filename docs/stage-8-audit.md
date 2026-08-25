@@ -6,7 +6,7 @@ Stage 7 was committed as `test: harden resolution engine for submission` on `cod
 
 ## Deployment architecture decision
 
-The application has a local JSON repository and local filesystem storage only. The Supabase repository is deliberately a seam, not an implementation, and no Supabase/Postgres URL, Supabase key, object-storage configuration, or hosting project was supplied. A serverless deployment using the current local adapters would not be durable or reliable.
+The application retains local JSON persistence and local filesystem storage for zero-configuration development. It now also includes provider-neutral Supabase PostgREST and private Storage adapters plus a documented migration. No Supabase project URL/key, object-storage configuration, or hosting project was supplied here, so a public deployment cannot be verified yet. A serverless deployment using local adapters alone would not be durable or reliable.
 
 **Decision:** do not deploy blindly. The project is deployment-ready in architecture but not publicly deployed. Hosted Supabase repository/storage adapters and their migration are now provided; configure a Supabase project and server-only deployment variables as documented in [deployment.md](deployment.md), then publish to Vercel. This remains the operational blocker for a public URL in the current environment.
 

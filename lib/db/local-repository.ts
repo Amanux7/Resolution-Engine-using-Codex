@@ -1,18 +1,20 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Case, Evidence, Fact, TimelineEvent, Conflict, MissingInformation, CaseStatus } from "../../types/case";
 import type { ResolutionRecommendation, RecommendationStatus } from "../../types/resolution";
+import type { ActionPackage, ActionPackageStatus, CommunicationDraft } from "../../types/action-package";
 import type { Repositories } from "./repositories";
 
-interface State { cases:Case[]; evidence:Evidence[]; facts:Fact[]; timeline:TimelineEvent[]; conflicts:Conflict[]; missing:MissingInformation[]; recommendations:ResolutionRecommendation[]; }
+interface State { cases:Case[]; evidence:Evidence[]; facts:Fact[]; timeline:TimelineEvent[]; conflicts:Conflict[]; missing:MissingInformation[]; recommendations:ResolutionRecommendation[]; actionPackages:ActionPackage[]; }
 const stateFilename=process.env.VITEST_POOL_ID?`state-test-${process.env.VITEST_POOL_ID}.json`:"state.json";
 const statePath=path.join(process.cwd(),"data","local",stateFilename);
 const now=()=>new Date().toISOString();
-const blankState=():State=>({cases:[],evidence:[],facts:[],timeline:[],conflicts:[],missing:[],recommendations:[]});
+const blankState=():State=>({cases:[],evidence:[],facts:[],timeline:[],conflicts:[],missing:[],recommendations:[],actionPackages:[]});
 let writeQueue=Promise.resolve();
-async function readState():Promise<State>{try{const state=JSON.parse(await readFile(statePath,"utf8")) as Partial<State>;return {...blankState(),...state,recommendations:state.recommendations??[]};}catch(error){if((error as NodeJS.ErrnoException).code!=="ENOENT")throw error;await mkdir(path.dirname(statePath),{recursive:true});const state=blankState();await writeFile(statePath,JSON.stringify(state,null,2));return state;}}
-async function updateState(mutator:(state:State)=>void){let result:State|undefined;writeQueue=writeQueue.then(async()=>{const state=await readState();mutator(state);await writeFile(statePath,JSON.stringify(state,null,2));result=state;});await writeQueue;return result as State;}
+async function writeState(state:State){await mkdir(path.dirname(statePath),{recursive:true});const temporary=`${statePath}.${randomUUID()}.tmp`;await writeFile(temporary,JSON.stringify(state,null,2));await rename(temporary,statePath);}
+async function readState():Promise<State>{try{const state=JSON.parse(await readFile(statePath,"utf8")) as Partial<State>;return {...blankState(),...state,recommendations:state.recommendations??[],actionPackages:state.actionPackages??[]};}catch(error){if((error as NodeJS.ErrnoException).code==="ENOENT"){const state=blankState();await writeState(state);return state;}if(process.env.VITEST_POOL_ID&&error instanceof SyntaxError){const state=blankState();await writeState(state);return state;}throw error;}}
+async function updateState(mutator:(state:State)=>void){let result:State|undefined;writeQueue=writeQueue.then(async()=>{const state=await readState();mutator(state);await writeState(state);result=state;});await writeQueue;return result as State;}
 function readiness(state:State,caseId:string){const facts=state.facts.filter(f=>f.caseId===caseId);const evidence=state.evidence.filter(e=>e.caseId===caseId);const conflicts=state.conflicts.filter(c=>c.caseId===caseId);const missing=state.missing.filter(m=>m.caseId===caseId);const processed=evidence.filter(e=>e.processingStatus==="processed").length;const expected=5;return {factsFound:facts.length,factsExpected:expected,evidenceProcessed:processed,evidenceTotal:evidence.length,timelineComplete:state.timeline.some(e=>e.caseId===caseId),conflicts:conflicts.length,missingDetails:missing.length,label:conflicts.length||missing.length?"Needs review":facts.length?"Ready for review":"Needs evidence"} as Case["readiness"];}
 function aggregate(state:State,record:Case){return {...record,evidence:state.evidence.filter(e=>e.caseId===record.id),facts:state.facts.filter(f=>f.caseId===record.id),timeline:state.timeline.filter(e=>e.caseId===record.id),conflicts:state.conflicts.filter(c=>c.caseId===record.id),missingInformation:state.missing.filter(m=>m.caseId===record.id),recommendations:state.recommendations.filter(r=>r.caseId===record.id).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),readiness:readiness(state,record.id)};}
 export class LocalRepositories implements Repositories {
@@ -41,6 +43,14 @@ export class LocalRepositories implements Repositories {
     getLatestByCaseId:async(caseId:string)=>{const state=await readState();return state.recommendations.filter(item=>item.caseId===caseId).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];},
     listByCaseId:async(caseId:string)=>{const state=await readState();return state.recommendations.filter(item=>item.caseId===caseId).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));},
     updateStatus:async(id:string,status:RecommendationStatus)=>{const state=await updateState(s=>{const item=s.recommendations.find(recommendation=>recommendation.id===id);if(item)item.status=status;});return state.recommendations.find(item=>item.id===id);}
+  };
+  actionPackages={
+    create:async(actionPackage:ActionPackage)=>{const state=await updateState(s=>s.actionPackages.push(actionPackage));return state.actionPackages.find(item=>item.id===actionPackage.id)!;},
+    getById:async(id:string)=>{const state=await readState();return state.actionPackages.find(item=>item.id===id);},
+    getLatestByCaseId:async(caseId:string)=>{const state=await readState();return state.actionPackages.filter(item=>item.caseId===caseId).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];},
+    listByCaseId:async(caseId:string)=>{const state=await readState();return state.actionPackages.filter(item=>item.caseId===caseId).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));},
+    updateStatus:async(id:string,status:ActionPackageStatus)=>{const state=await updateState(s=>{const item=s.actionPackages.find(value=>value.id===id);if(item)Object.assign(item,{status,updatedAt:now()});});return state.actionPackages.find(item=>item.id===id);},
+    updateCommunication:async(id:string,communication:CommunicationDraft)=>{const state=await updateState(s=>{const item=s.actionPackages.find(value=>value.id===id);if(item)Object.assign(item,{communication,updatedAt:now()});});return state.actionPackages.find(item=>item.id===id);}
   };
   async getAggregate(id:string,userId:string){return this.cases.getById(id,userId);}
   async setStatus(id:string,userId:string,status:CaseStatus){return this.cases.update(id,userId,{status});}

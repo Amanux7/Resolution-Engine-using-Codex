@@ -5,6 +5,7 @@ node_modules/
 .npm-cache/
 *.tsbuildinfo
 work/
+.stage6-publish/
 data/local/
 .env*
 !.env.example

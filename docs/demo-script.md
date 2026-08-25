@@ -1,41 +1,22 @@
-# Resolution Engine demo script
+# Resolution Engine — two-minute demo script
 
-Use the **Try a sample case** path as the reliable demonstration. It is fully fictional and does not depend on an external provider. Show one optional live screenshot extraction only if the provider is available before the presentation.
+Use **Try a sample case** as the primary path. It is fictional and deterministic. Show the optional live image extraction only when it was successfully pre-checked.
 
-## Pre-demo checklist (20 seconds)
-
-1. Open the homepage in a fresh browser session.
-2. Select **Try a sample case**.
-3. Confirm the sample case opens with evidence, timeline, and a recommendation.
-4. Approve the recommendation and confirm **Prepare it** can create the package.
-5. If demonstrating live extraction, run the opt-in image test once beforehand. If it is unavailable, skip that moment—never wait on a spinner in front of judges.
-
-## First 60 seconds: citizen journey
-
-| Time | Show | Say |
+| Time | Show | Narration |
 | --- | --- | --- |
-| 0–10s | Home screen | “A consumer may have a damaged phone, five screenshots, and weeks of messages—but no organized case.” |
-| 10–20s | Intake box | Enter: `Mera phone damaged aaya tha. Return pickup ho gaya but refund confirm nahi hua.` “They can explain it naturally, in English, Hindi, or Hinglish.” |
-| 20–35s | Evidence area | “They add the screenshots and documents they already have. Each useful detail remains linked to its source.” Optionally show a live extraction of the fictional order screenshot only if pre-checked. |
-| 35–45s | Timeline and uncertainty | “The product shows what happened, and what still needs confirmation.” |
-| 45–55s | Recommendation | “The next step is evidence-backed: ask the seller to confirm the refund status in writing.” |
-| 55–60s | Approval control | “The user stays in control. Nothing is sent.” |
+| 0:00–0:08 | Invoice, support chat, delivery update, damaged-phone image | “When a consumer problem goes wrong, the evidence is usually already there—but scattered everywhere.” |
+| 0:08–0:16 | Home intake | Enter `Mera phone damaged aaya tha. Return pickup ho gaya but refund confirm nahi hua.` “Resolution Engine starts with the messy version.” |
+| 0:16–0:27 | Evidence and details | “It keeps each useful detail connected to its source.” Show one synthetic live extraction only if available. |
+| 0:27–0:39 | Timeline and uncertainty | “It reconstructs what happened and makes uncertainty visible instead of guessing.” |
+| 0:39–0:50 | Recommendation | “The next evidence-backed step is to ask the seller for written refund confirmation.” |
+| 0:50–0:58 | Message and Resolution Pack | “The user approves the direction. Nothing is sent automatically.” |
+| 0:58–1:10 | Architecture diagram | “This is not an LLM deciding a case from a prompt.” |
+| 1:10–1:23 | Evidence pipeline | “OpenAI can extract candidate facts from a screenshot. Schema checks, provenance, and validation decide whether they can enter the case.” |
+| 1:23–1:35 | Conflicts + ranking | “Conflicts, missing information, synthetic policy guidance, and deterministic ranking shape the recommendation.” |
+| 1:35–1:47 | Approval controls | “The person remains in control through recommendation and communication review.” |
+| 1:47–1:55 | Product + source links | “Codex helped build and test the architecture; the product boundaries and final review remain human-directed.” |
+| 1:55–1:58 | Resolution Pack | “Resolution Engine does not replace grievance systems. It helps people arrive with a case they can use.” |
 
-## Second 60 seconds: trust architecture
+## Live-provider fallback
 
-Show the sample case and explain this compact flow:
-
-```text
-Evidence → structured candidates → validation → provenance → conflicts
-         → deterministic decision ranking → user approval → prepared pack
-```
-
-Then open the prepared message sources and the Resolution Pack. Emphasize: **the model proposes; deterministic rules validate; the user approves.**
-
-## Live AI fallback
-
-If live image extraction is unavailable or rate-limited, say:
-
-> “The live provider is optional for this demo. The sample case remains available so we can show the complete citizen outcome reliably. We do not pretend a live extraction succeeded.”
-
-Continue with the sample case. It includes only fictional evidence and never submits anything externally.
+If the provider is unavailable, say: “The live provider is optional for this demo. The fictional sample case shows the complete outcome reliably, and we do not pretend a live extraction succeeded.” Continue with the sample case; never wait on a spinner.

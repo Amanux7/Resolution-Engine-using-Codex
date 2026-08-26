@@ -8,7 +8,11 @@ Each sample is persisted using the same repository, provenance, conflict, missin
 
 ## Signature experience
 
-The homepage introduces “Different problems. One Resolution Engine.” with an editorial sample library. The visual system uses a restrained navy, white, and warm off-white palette plus a Playfair Display-first display stack for English headings; the existing system/Devanagari fallback remains used for citizen text. The local-first stack avoids a render-blocking remote font request during development builds.
+The homepage introduces “Different problems. One Resolution Engine.” with an editorial sample library. The visual system uses a restrained navy, white, and warm off-white palette plus Playfair Display for English H1 headings; Poppins and the existing Devanagari-safe fallback stack handle the rest of the citizen interface.
+
+The public product explanation now lives at `/`, while the working intake and case workspace lives at `/app`. Validated sample links use `/app?sample=<known-id>`, and `/cases/[caseId]` reopens persisted cases through the same shared workspace component. The landing page remains server-rendered and adds no new business logic.
+
+Typography is deliberately narrow: H1 headings use italic Playfair Display; the remaining interface uses Poppins with Devanagari-safe fallbacks. The landing page presents the problem categories, shared reconstruction process, provenance model, India-first inputs, fictional samples, trust boundary, and Resolution Pack without exposing internal agent terminology.
 
 The case workspace now foregrounds a deterministic intelligence strip, source-linked vertical timeline, calm conflict presentation, missing-information section, and a lightweight evidence map. These are CSS layouts, not a graph library, so they remain suitable for mobile and low bandwidth.
 
@@ -22,7 +26,7 @@ Supabase provider selection, storage, server-only OpenAI extraction, environment
 
 ## Verification
 
-The local browser pass covered the homepage, one cross-domain sample (electricity billing), conflict display, evidence map, recommendation explanation, and the 360/390/412/768/1280 px width matrix. The observed document width matched the viewport at each target width, with no console warnings or errors.
+The local browser pass covered the landing page, `/app`, direct sample routing, `/cases/[caseId]`, one cross-domain sample (electricity billing), conflict display, evidence map, and recommendation explanation. The 360/390/412/768/1024/1280/1440 px matrix showed no horizontal overflow. Computed styles confirmed italic Playfair Display on H1 and Poppins on H2/body interface text.
 
 ## Remaining work
 

@@ -7,7 +7,7 @@ import type { Repositories } from "./repositories";
 
 type StoredRow<T> = { id: string; case_id?: string; user_id?: string; source_id?: string; status?: string; created_at: string; updated_at?: string; payload: T };
 const now = () => new Date().toISOString();
-const select = "select=id,case_id,user_id,status,created_at,updated_at,payload";
+const select = "select=*";
 const exact = (value: string) => `eq.${escapePostgrestValue(value)}`;
 function readiness(record: Case, evidence: Evidence[], facts: Fact[], timeline: TimelineEvent[], conflicts: Conflict[], missing: MissingInformation[]): Case["readiness"] { const processed = evidence.filter((item) => item.processingStatus === "processed").length; return { factsFound: facts.length, factsExpected: 5, evidenceProcessed: processed, evidenceTotal: evidence.length, timelineComplete: timeline.length > 0, conflicts: conflicts.length, missingDetails: missing.length, label: conflicts.length || missing.length ? "Needs review" : facts.length ? "Ready for review" : "Needs evidence" }; }
 
